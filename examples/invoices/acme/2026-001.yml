@@ -1,0 +1,28 @@
+# Demo invoice — covers May 2026, with one pass-through expense attached.
+
+number: NWS-2026-001-ACME
+client: acme
+
+issue_date: 2026-06-01
+due_date: 2026-07-01
+payment_terms: "Net 30"
+
+service_period:
+  start: 2026-05-01
+  end: 2026-05-31
+  label: "May 1 – May 31, 2026"
+
+line_items:
+  - description: "Monthly retainer — consulting services (May 2026)"
+    quantity: 1
+    unit: month
+    rate: 8000.00
+
+subcontractors: []
+expenses: []
+
+notes: |
+  Thank you for your business. Questions? hello@northwind.example
+
+include_expenses:
+  - 2026-05-12-cloudhost.yml

@@ -1,0 +1,30 @@
+# Demo client. Invoices in invoices/acme/ inherit these defaults.
+
+slug: acme
+
+# `backoffice cycle` generates this client's invoice each month.
+recurring: true
+
+client:
+  legal_name: Acme Incorporated
+  attn: "Accounts Payable"
+  email: ap@acme.example
+  address:
+    line1: "1 Acme Plaza"
+    city: "Metropolis"
+    state: "NY"
+    zip: "10001"
+    country: USA
+
+contract:
+  reference: "Master Services Agreement"
+  reference_date: 2026-01-01
+  contract_ref: "contracts/acme-msa.md"
+  payment_terms: "Net 30"
+  subcontractor_cap_per_month: 5000.00
+
+default_line_items:
+  - description: "Monthly retainer — consulting services"
+    quantity: 1
+    unit: month
+    rate: 8000.00

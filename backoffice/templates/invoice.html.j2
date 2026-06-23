@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ invoice.doc_title }} {{ invoice.number }} — {{ studio.short_name or studio.legal_name }}</title>
+<style>
+  /* ─── Theme (driven from studio.branding) ───────────────── */
+  :root {
+    --ink: #111;
+    --muted: #6b6b6b;
+    --rule: #d4d4d4;
+    --accent: {{ studio.branding.accent or '#111' }};
+    --bg: #fff;
+    --font: {{ studio.branding.font or 'ui-sans-serif, -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif' }};
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #f4f4f2; color: var(--ink);
+    font-family: var(--font);
+    font-size: 11pt; line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    background: var(--bg); width: 8.5in; min-height: 11in;
+    margin: 0.5in auto; padding: 0.75in 0.75in 0.6in;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    display: flex; flex-direction: column;
+  }
+  .letterhead {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 1px solid var(--rule); padding-bottom: 18pt;
+  }
+  .letterhead .studio-name {
+    font-size: 14pt; font-weight: 700; letter-spacing: 0.02em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 4pt;
+  }
+  .letterhead .studio-meta { font-size: 9pt; color: var(--muted); line-height: 1.5; }
+  .letterhead .studio-meta div { margin: 0; }
+  .letterhead .doc-title {
+    font-size: 22pt; font-weight: 300; letter-spacing: 0.18em;
+    text-transform: uppercase; margin: 0; color: var(--accent); text-align: right;
+  }
+  .letterhead .doc-sub {
+    font-size: 9pt; color: var(--muted); text-align: right;
+    margin-top: 4pt; letter-spacing: 0.04em;
+  }
+  .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 28pt; margin: 22pt 0 18pt; }
+  .meta h3 {
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); font-weight: 600; margin: 0 0 6pt;
+  }
+  .meta .bill-to .name { font-weight: 600; margin-bottom: 2pt; }
+  .meta .bill-to div { margin: 0; }
+  .meta .placeholder { color: #b08e3e; }
+  .meta-grid {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: 4pt 14pt; align-content: start;
+  }
+  .meta-grid dt {
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); font-weight: 600;
+  }
+  .meta-grid dd { margin: 0; font-feature-settings: "tnum"; }
+  .meta-grid dd.invoice-number { font-weight: 700; letter-spacing: 0.02em; }
+  .period {
+    border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+    padding: 8pt 0; margin: 0 0 14pt; font-size: 9.5pt;
+  }
+  .period .label {
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em;
+    font-size: 8pt; margin-right: 10pt;
+  }
+  table.items { width: 100%; border-collapse: collapse; margin-bottom: 14pt; }
+  table.items thead th {
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); font-weight: 600; text-align: left;
+    border-bottom: 1px solid var(--ink); padding: 6pt 6pt 6pt 0;
+  }
+  table.items thead th.num { text-align: right; }
+  table.items tbody td { padding: 8pt 6pt 8pt 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  table.items tbody td.num { text-align: right; font-feature-settings: "tnum"; white-space: nowrap; }
+  table.items tbody td.desc .sub { font-size: 9pt; color: var(--muted); margin-top: 2pt; }
+  table.items tbody tr.section-header td {
+    border-bottom: none; padding-top: 14pt; padding-bottom: 2pt;
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); font-weight: 600;
+  }
+  .totals { margin-left: auto; width: 46%; margin-top: 10pt; }
+  .totals .row { display: flex; justify-content: space-between; padding: 4pt 0; font-feature-settings: "tnum"; }
+  .totals .row.subtotal { border-bottom: 1px solid var(--rule); }
+  .totals .row.grand {
+    border-top: 2px solid var(--ink); padding-top: 8pt; margin-top: 4pt;
+    font-size: 13pt; font-weight: 700;
+  }
+  .totals .row .label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-size: 9pt; font-weight: 600; }
+  .totals .row.grand .label { color: var(--ink); font-size: 11pt; }
+  .payment {
+    margin-top: 22pt; border-top: 1px solid var(--rule); padding-top: 14pt;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 22pt;
+  }
+  .payment h3, .taxform h3 {
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); font-weight: 600; margin: 0 0 6pt;
+  }
+  .payment .method { font-size: 10pt; line-height: 1.55; }
+  .payment .method strong { font-weight: 600; }
+  .payment .method .row { display: flex; gap: 8pt; }
+  .payment .method .row .k { color: var(--muted); min-width: 64pt; }
+  .payment .method .row .v { font-feature-settings: "tnum"; }
+  .taxform { margin-top: 14pt; padding-top: 12pt; border-top: 1px solid var(--rule); font-size: 9.5pt; }
+  .taxform-row { display: flex; gap: 22pt; align-items: baseline; flex-wrap: wrap; }
+  .taxform-row .k { color: var(--muted); margin-right: 4pt; text-transform: uppercase; letter-spacing: 0.08em; font-size: 8pt; }
+  .taxform-row .v { font-feature-settings: "tnum"; }
+  .taxform-row .w9-link { margin-left: auto; }
+  .taxform-row .w9-link a {
+    color: var(--ink); text-decoration: none;
+    border-bottom: 1px solid var(--ink); padding-bottom: 1pt; font-weight: 600;
+  }
+  .notes {
+    margin-top: 18pt; padding-top: 12pt; border-top: 1px solid var(--rule);
+    font-size: 9.5pt; color: var(--muted); white-space: pre-line;
+  }
+  .signoff { margin-top: auto; padding-top: 24pt; font-size: 9pt; color: var(--muted); text-align: right; }
+  .signoff .signer { color: var(--ink); font-weight: 600; }
+  @page { size: Letter; margin: 0; }
+  @media print {
+    html, body { background: #fff; }
+    .page { margin: 0; width: 100%; min-height: 100vh; box-shadow: none; padding: 0.5in 0.6in; }
+    .no-print { display: none !important; }
+  }
+  .toolbar { max-width: 8.5in; margin: 12pt auto -8pt; text-align: right; font-size: 9pt; color: var(--muted); }
+  .toolbar button {
+    background: var(--accent); color: #fff; border: none; padding: 6pt 12pt;
+    border-radius: 4pt; cursor: pointer; font: inherit; font-size: 9pt;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="page">
+
+  <header class="letterhead">
+    <div class="studio">
+      <h1 class="studio-name">{{ studio.legal_name }}</h1>
+      <div class="studio-meta">
+        {% if studio.address.line1 %}<div>{{ studio.address.line1 }}</div>{% endif %}
+        {% if studio.address.city %}<div>{{ studio.address.city }}, {{ studio.address.state }} {{ studio.address.zip }}</div>{% endif %}
+        {% if studio.contact.phone %}<div>{{ studio.contact.phone }}</div>{% endif %}
+        {% if studio.contact.email %}<div>{{ studio.contact.email }}</div>{% endif %}
+      </div>
+    </div>
+    <div>
+      <h2 class="doc-title">{{ invoice.doc_title }}</h2>
+      <div class="doc-sub">{{ invoice.number }}</div>
+    </div>
+  </header>
+
+  <section class="meta">
+    <div class="bill-to">
+      <h3>Bill to</h3>
+      <div class="name">{{ invoice.bill_to.legal_name }}{% if invoice.bill_to.dba %} <span style="color:var(--muted);font-weight:400;">d/b/a {{ invoice.bill_to.dba }}</span>{% endif %}</div>
+      {% if invoice.bill_to.entity_note %}<div style="font-size:9pt;color:var(--muted);">{{ invoice.bill_to.entity_note }}</div>{% endif %}
+      {% if invoice.bill_to.attn %}<div{% if "[" in invoice.bill_to.attn %} class="placeholder"{% endif %}>Attn: {{ invoice.bill_to.attn }}</div>{% endif %}
+      {% if invoice.bill_to.address.line1 %}<div{% if "[" in invoice.bill_to.address.line1 %} class="placeholder"{% endif %}>{{ invoice.bill_to.address.line1 }}</div>{% endif %}
+      {% if invoice.bill_to.address.line2 %}<div>{{ invoice.bill_to.address.line2 }}</div>{% endif %}
+      {% if invoice.bill_to.address.city %}<div{% if "[" in invoice.bill_to.address.city %} class="placeholder"{% endif %}>{{ invoice.bill_to.address.city }}, {{ invoice.bill_to.address.state }} {{ invoice.bill_to.address.zip }}</div>{% endif %}
+      {% if invoice.bill_to.email %}<div style="margin-top:4pt;color:var(--muted);">{{ invoice.bill_to.email }}</div>{% endif %}
+    </div>
+
+    <dl class="meta-grid">
+      <dt>{{ invoice.doc_title }} no.</dt><dd class="invoice-number">{{ invoice.number }}</dd>
+      <dt>Issue date</dt><dd>{{ invoice.issue_date_fmt }}</dd>
+      {% if invoice.due_date %}<dt>{% if invoice.type == 'quote' %}Valid until{% else %}Due date{% endif %}</dt><dd>{{ invoice.due_date_fmt }}</dd>{% endif %}
+      <dt>Terms</dt><dd>{{ invoice.payment_terms }}</dd>
+      {% if client.contract.reference %}<dt>Reference</dt><dd>{{ client.contract.reference }}</dd>{% endif %}
+    </dl>
+  </section>
+
+  {% if invoice.service_period %}
+  <div class="period">
+    <span class="label">Service period</span>
+    <span>{{ invoice.service_period.label }}</span>
+  </div>
+  {% endif %}
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th style="width: 56%;">Description</th>
+        <th class="num" style="width: 10%;">Qty</th>
+        <th class="num" style="width: 17%;">Rate</th>
+        <th class="num" style="width: 17%;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in invoice.line_items %}
+      <tr>
+        <td class="desc">{{ item.description }}{% if item.sub %}<div class="sub">{{ item.sub }}</div>{% endif %}</td>
+        <td class="num">{{ item.quantity_fmt }}{% if item.unit %} {{ item.unit }}{% endif %}</td>
+        <td class="num">{{ item.rate_fmt }}</td>
+        <td class="num">{{ item.amount_fmt }}</td>
+      </tr>
+      {% endfor %}
+
+      {% if invoice.subcontractors %}
+      <tr class="section-header"><td colspan="4">Subcontractor pass-through (receipts attached)</td></tr>
+      {% for item in invoice.subcontractors %}
+      <tr>
+        <td class="desc">{{ item.description }}{% if item.sub %}<div class="sub">{{ item.sub }}</div>{% endif %}</td>
+        <td class="num">{{ item.quantity_fmt }}{% if item.unit %} {{ item.unit }}{% endif %}</td>
+        <td class="num">{{ item.rate_fmt }}</td>
+        <td class="num">{{ item.amount_fmt }}</td>
+      </tr>
+      {% endfor %}
+      {% endif %}
+
+      {% if invoice.expenses %}
+      <tr class="section-header"><td colspan="4">Reimbursable expenses (receipts attached)</td></tr>
+      {% for item in invoice.expenses %}
+      <tr>
+        <td class="desc">{{ item.description }}{% if item.sub %}<div class="sub">{{ item.sub }}</div>{% endif %}</td>
+        <td class="num">{{ item.quantity_fmt }}{% if item.unit %} {{ item.unit }}{% endif %}</td>
+        <td class="num">{{ item.rate_fmt }}</td>
+        <td class="num">{{ item.amount_fmt }}</td>
+      </tr>
+      {% endfor %}
+      {% endif %}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="row subtotal"><span class="label">Subtotal</span><span>{{ invoice.subtotal_fmt }}</span></div>
+    {% if invoice.tax and invoice.tax_amount %}
+    <div class="row"><span class="label">Tax ({{ invoice.tax.rate_pct }}%)</span><span>{{ invoice.tax_amount_fmt }}</span></div>
+    {% endif %}
+    <div class="row grand"><span class="label">{% if invoice.type == 'quote' %}Estimated total{% else %}Total due{% endif %}</span><span>{{ invoice.total_fmt }}</span></div>
+  </div>
+
+  {% if invoice.type != 'quote' and studio.payment %}
+  <section class="payment">
+    {% if studio.payment.ach %}
+    <div>
+      <h3>Pay by ACH</h3>
+      <div class="method">
+        {% if studio.payment.ach.bank_name %}<div class="row"><span class="k">Bank</span><span class="v">{{ studio.payment.ach.bank_name }}</span></div>{% endif %}
+        <div class="row"><span class="k">Account name</span><span class="v">{{ studio.payment.ach.account_name }}</span></div>
+        {% if studio.payment.ach.account_type %}<div class="row"><span class="k">Account type</span><span class="v">{{ studio.payment.ach.account_type }}</span></div>{% endif %}
+        <div class="row"><span class="k">Routing</span><span class="v">{{ studio.payment.ach.routing }}</span></div>
+        <div class="row"><span class="k">Account</span><span class="v">{{ studio.payment.ach.account }}</span></div>
+      </div>
+    </div>
+    {% endif %}
+    {% if studio.payment.check %}
+    <div>
+      <h3>Pay by check</h3>
+      <div class="method">
+        <div>Make payable to <strong>{{ studio.payment.check.payable_to }}</strong></div>
+        {% if studio.payment.check.mail_to %}
+        <div style="margin-top:6pt;">Mail to:</div>
+        {% for line in studio.payment.check.mail_to %}<div>{{ line }}</div>{% endfor %}
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if invoice.type != 'quote' and studio.tax %}
+  <section class="taxform">
+    <h3>Tax information</h3>
+    <div class="taxform-row">
+      {% if studio.tax.ein %}<div><span class="k">EIN</span> <span class="v">{{ studio.tax.ein }}</span></div>{% endif %}
+      {% if studio.tax.classification %}<div><span class="k">Classification</span> <span class="v">{{ studio.tax.classification }}</span></div>{% endif %}
+      {% if studio.tax.w9 and studio.tax.w9.file %}
+      <div class="w9-link"><a href="../{{ studio.tax.w9.file }}" target="_blank" rel="noopener">↓ {{ studio.tax.w9.label or 'W-9' }}</a></div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if invoice.notes %}<div class="notes">{{ invoice.notes }}</div>{% endif %}
+
+  {% if studio.signer %}
+  <div class="signoff">
+    <div class="signer">{{ studio.signer.name }}</div>
+    <div>{{ studio.signer.title }}, {{ studio.legal_name }}</div>
+  </div>
+  {% endif %}
+
+</div>
+
+</body>
+</html>

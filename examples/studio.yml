@@ -1,0 +1,49 @@
+# Demo studio identity for the examples/ workspace.
+# Run renders against it with:  BACKOFFICE_HOME=examples backoffice render --all
+# Real bank/EIN would live in studio.local.yml (gitignored) — omitted here on purpose.
+
+legal_name: Northwind Studio, LLC
+short_name: Northwind Studio
+trade_name: NWS
+state_of_formation: Delaware
+
+address:
+  line1: 100 Example Ave
+  city: Anytown
+  state: CA
+  zip: "90000"
+  country: USA
+
+contact:
+  phone: 555-010-0100
+  email: hello@northwind.example
+  website: northwind.example
+
+signer:
+  name: Pat Founder
+  title: Managing Member
+
+branding:
+  accent: "#1f6f5c"
+
+numbering:
+  prefix: NWS
+
+tax:
+  classification: "Single-member LLC (disregarded entity)"
+
+payment:
+  currency: USD
+  default_terms: Net 30
+  ach:
+    bank_name: Example Bank
+    account_type: Business Checking
+    account_name: Northwind Studio, LLC
+    routing: "000000000"
+    account: "000000000000"
+  check:
+    payable_to: Northwind Studio, LLC
+    mail_to:
+      - Northwind Studio, LLC
+      - 100 Example Ave
+      - Anytown, CA 90000

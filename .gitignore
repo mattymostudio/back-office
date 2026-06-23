@@ -1,0 +1,42 @@
+# ── Real billing data never belongs in version control ─────────────
+# Back Office ships an examples/ dataset. Your real workspace lives in the
+# data dirs below; they are ignored by default so secrets (bank, EIN, client
+# names, dollar amounts, signed forms, receipts) never get committed.
+#
+# Working in a private repo and WANT to track your data? Delete the lines for
+# the dirs you want versioned — but keep studio.local.yml ignored.
+
+# Identity overlay holding real bank / EIN / SSN — ALWAYS ignored.
+studio.local.yml
+
+# Live workspace data (the examples/ tree is the only data that ships).
+/clients/
+/invoices/
+/quotes/
+/expenses/
+/contractors/
+/receipts/
+/forms/
+/contracts/
+/out/
+
+# Rendered output anywhere.
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Local dev tooling / editor scaffolding (not part of the product)
+.claude/
+
+# OS junk
+.DS_Store

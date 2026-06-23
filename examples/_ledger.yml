@@ -1,0 +1,13 @@
+# Demo status ledger. Normally managed by `backoffice mark`.
+
+invoices:
+  - number: NWS-2026-001-ACME
+    client: acme
+    issue_date: 2026-06-01
+    due_date: 2026-07-01
+    amount: 8120.00
+    status: sent
+    sent_date: 2026-06-01
+    paid_date: ""
+    method: ""
+    notes: "Demo invoice — sent, awaiting payment."

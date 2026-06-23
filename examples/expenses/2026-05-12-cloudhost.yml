@@ -1,0 +1,14 @@
+# Demo pass-through expense referenced by invoices/acme/2026-001.yml.
+
+date: 2026-05-12
+vendor: CloudHost
+category: software
+description: "Staging environment — May 2026"
+amount: 120.00
+currency: USD
+client: acme
+billable: true
+pre_approved: true
+pre_approval_ref: "MSA §4 — hosting pass-through"
+receipt: ""
+notes: ""

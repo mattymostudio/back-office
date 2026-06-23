@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "backoffice"
+version = "0.1.0"
+description = "Plain-text, Git-friendly invoicing. Read a contract, render a PDF, track what you're owed — all from YAML."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Matty Mo Studio" }]
+keywords = ["invoice", "invoicing", "freelance", "consulting", "yaml", "pdf", "accounts-receivable"]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Office/Business :: Financial :: Accounting",
+  "Environment :: Console",
+]
+dependencies = [
+  "PyYAML>=6.0",
+  "Jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+# PDF export without a browser. Needs system libs (pango/cairo); see README.
+pdf = ["weasyprint>=60"]
+# Optional LLM-assisted contract ingest. Deterministic ingest needs nothing.
+llm = ["anthropic>=0.40"]
+dev = ["pytest>=7", "ruff>=0.4"]
+
+[project.scripts]
+backoffice = "backoffice.cli:main"
+bo = "backoffice.cli:main"
+
+[project.urls]
+Homepage = "https://themostfamousartist.com"
+
+[tool.setuptools]
+packages = ["backoffice"]
+
+[tool.setuptools.package-data]
+backoffice = ["templates/*.j2"]
