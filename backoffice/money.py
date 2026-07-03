@@ -18,6 +18,15 @@ def to_money(value) -> Decimal:
     return Decimal(str(value)).quantize(CENTS, rounding=ROUND_HALF_UP)
 
 
+def money_str(value) -> str:
+    """2-dp string form for storing amounts in YAML (e.g. '8120.00').
+
+    Stored as a string so the file never holds a binary float — the exactness
+    promise survives the round trip to disk.
+    """
+    return str(to_money(value))
+
+
 # Common currency symbols. Anything else renders as a prefixed code ("CHF ").
 _SYMBOLS = {"USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥", "CAD": "$", "AUD": "$"}
 

@@ -1,5 +1,7 @@
 # Back Office
 
+[![CI](https://github.com/mattymostudio/back-office/actions/workflows/ci.yml/badge.svg)](https://github.com/mattymostudio/back-office/actions/workflows/ci.yml)
+
 Plain-text invoicing that lives in a folder, not a SaaS dashboard. Your clients,
 invoices, and business identity are YAML files; Back Office turns them into clean,
 print-ready invoices and tracks what you're owed. Drive it from the terminal
@@ -10,6 +12,8 @@ talk to it.
 > say *"help me get started."* It installs the tool, sets up your details, and runs
 > everything. See [GETTING_STARTED.md](GETTING_STARTED.md); the agent instructions
 > live in [CLAUDE.md](CLAUDE.md).
+
+![Sample invoice rendered by Back Office — the bundled synthetic Northwind/Acme demo](https://raw.githubusercontent.com/mattymostudio/back-office/main/docs/invoice-sample.png)
 
 ## What it does
 

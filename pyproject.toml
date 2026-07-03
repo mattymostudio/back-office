@@ -35,6 +35,15 @@ bo = "backoffice.cli:main"
 
 [project.urls]
 Homepage = "https://themostfamousartist.com"
+Repository = "https://github.com/mattymostudio/back-office"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+# E70x: the CLI uses `ws = _ws(); _need_ws(ws)` one-liners deliberately.
+ignore = ["E701", "E702"]
 
 [tool.setuptools]
 packages = ["backoffice"]

@@ -230,7 +230,7 @@ def mark(ws: Workspace, number: str, status: str, *, on: str | None = None,
             "number": number, "client": src.client,
             "issue_date": src.issue_date.isoformat() if src.issue_date else "",
             "due_date": src.due_date.isoformat() if src.due_date else "",
-            "amount": float(src.total),
+            "amount": str(src.total),
         }
         rows.append(row)
 

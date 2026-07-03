@@ -47,8 +47,8 @@ def cmd_init(args) -> int:
     print(f"{GREEN}✓{RESET} workspace at {ws.root}")
     for p in written:
         print(f"  + {p.relative_to(ws.root)}")
-    print(f"\nNext: edit studio.yml, then `backoffice render acme/2026-001` "
-          f"(or open the rendered HTML).")
+    print("\nNext: edit studio.yml, then `backoffice render acme/2026-001` "
+          "(or open the rendered HTML).")
     print(f"{DIM}Put real bank/EIN in studio.local.yml (copy studio.local.example.yml).{RESET}")
     return 0
 

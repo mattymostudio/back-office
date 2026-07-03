@@ -9,7 +9,7 @@ import pytest
 from backoffice.config import Workspace, deep_merge
 from backoffice import ingest, ledger, scaffold
 from backoffice.model import load_invoice, prepare_invoice
-from backoffice.money import fmt_money, fmt_qty, fmt_date, to_money
+from backoffice.money import fmt_money, fmt_qty, fmt_date
 from backoffice.render import render_html
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
@@ -125,6 +125,41 @@ def test_next_number(ws):
 
 def test_quote_numbering_separate_from_invoices(ws):
     assert scaffold.next_number(ws, 2026, "acme", "quote") == "NWS-Q-2026-001-ACME"
+
+
+# ── include-list editing ───────────────────────────────────────────
+
+def test_append_preserves_inline_populated_list(tmp_path):
+    # Hand-written flow style must not be shadowed by a duplicate key.
+    inv = tmp_path / "2026-001.yml"
+    inv.write_text("number: X-2026-001\ninclude_expenses: [existing.yml, 'quoted.yml']\nnotes: ''\n")
+    scaffold.append_to_include_list(inv, "new.yml", "include_expenses")
+    import yaml
+    data = yaml.safe_load(inv.read_text())
+    assert data["include_expenses"] == ["existing.yml", "quoted.yml", "new.yml"]
+
+
+# ── amounts round-trip exactly via YAML ────────────────────────────
+
+def test_expense_amount_stored_as_exact_string(tmp_path):
+    ws = _seed(tmp_path)
+    _, fname = scaffold.add_expense(
+        ws, invoice="acme/2026-001", vendor="CloudHost", amount=200.30,
+        date_="2026-05-15", description="Compute")
+    import yaml
+    data = yaml.safe_load((ws.expenses_dir / fname).read_text())
+    assert data["amount"] == "200.30"                      # string on disk, no float drift
+    assert Decimal(str(data["amount"])) == Decimal("200.30")
+
+def test_mark_writes_ledger_amount_as_string(tmp_path):
+    ws = _seed(tmp_path)
+    (ws.root / "_ledger.yml").write_text("invoices: []\n")  # force synthesis from disk
+    ledger.mark(ws, "NWS-2026-001-ACME", "sent", on="2026-06-15")
+    import yaml
+    rows = yaml.safe_load((ws.root / "_ledger.yml").read_text())["invoices"]
+    assert rows[0]["amount"] == "8120.00"
+    _, drift = ledger.reconcile(ws)
+    assert drift == []                                      # string amount reconciles cleanly
 
 
 # ── new features: quote→invoice, cycle, year-end summary ───────────

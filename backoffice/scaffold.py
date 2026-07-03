@@ -15,7 +15,7 @@ from pathlib import Path
 import yaml
 
 from .config import PACKAGE_DIR, Workspace, load_yaml
-from .money import coerce_date
+from .money import coerce_date, money_str
 
 INIT_GITIGNORE = (PACKAGE_DIR.parent / ".gitignore")
 
@@ -95,7 +95,7 @@ def new_invoice(ws: Workspace, client_slug: str, *, issue_date: str | None = Non
     invoice["include_contractors"] = []
     invoice["notes"] = notes or ""
 
-    m = re.match(rf"^.+-(\d{{4}})-(\d{{3}})-", num)
+    m = re.match(r"^.+-(\d{4})-(\d{3})-", num)
     if m:
         seq = f"{m.group(1)}-{m.group(2)}"
         fname = f"q-{seq}.yml" if doc_type == "quote" else f"{seq}.yml"
@@ -121,10 +121,19 @@ def new_invoice(ws: Workspace, client_slug: str, *, issue_date: str | None = Non
 def append_to_include_list(invoice_path: Path, filename: str, key: str) -> None:
     text = invoice_path.read_text()
     inline_empty = re.compile(rf"^{key}:\s*\[\s*\]\s*$", re.MULTILINE)
+    inline_populated = re.compile(rf"^{key}:\s*\[(.+)\]\s*$", re.MULTILINE)
     populated = re.compile(rf"^{key}:\s*$", re.MULTILINE)
 
     if inline_empty.search(text):
         text = inline_empty.sub(f"{key}:\n  - {filename}", text)
+    elif (m := inline_populated.search(text)):
+        # Hand-written flow style (`key: [a.yml, b.yml]`) — rewrite as a block
+        # list. Appending a second `key:` here would shadow it (YAML keeps the
+        # last duplicate key) and silently drop the existing entries.
+        items = [i.strip().strip("'\"") for i in m.group(1).split(",") if i.strip()]
+        items.append(filename)
+        block = f"{key}:\n" + "\n".join(f"  - {i}" for i in items)
+        text = text[:m.start()] + block + text[m.end():]
     elif populated.search(text):
         lines = text.splitlines()
         new_lines: list[str] = []
@@ -210,7 +219,7 @@ def add_expense(ws: Workspace, *, invoice: str, vendor: str, amount: float,
 
     data = {
         "date": date_, "vendor": vendor, "category": category,
-        "description": description, "amount": float(amount), "currency": "USD",
+        "description": description, "amount": money_str(amount), "currency": "USD",
         "client": client_slug, "billable": True,
         "pre_approved": bool(pre_approved), "pre_approval_ref": pre_approval_ref,
         "receipt": receipt_rel, "notes": notes,
@@ -265,7 +274,7 @@ def add_contractor(ws: Workspace, *, invoice: str, name: str, role: str = "",
         "notes": notes,
     }
     if amount is not None:
-        data["amount"] = float(amount)
+        data["amount"] = money_str(amount)
     if hours is not None:
         data["hours"] = float(hours)
     if rate is not None:
