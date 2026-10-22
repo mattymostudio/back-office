@@ -22,7 +22,9 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import __version__, ingest as ingest_mod, ledger as ledger_mod, scaffold
+from . import __version__, scaffold
+from . import ingest as ingest_mod
+from . import ledger as ledger_mod
 from .config import Workspace
 from .model import find_all_invoices
 from .money import fmt_money

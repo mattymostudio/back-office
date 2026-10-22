@@ -13,7 +13,6 @@ from pathlib import Path
 from .config import Workspace, load_yaml
 from .money import coerce_date, fmt_date, fmt_money, fmt_qty, to_money
 
-
 # ── loading ────────────────────────────────────────────────────────
 
 def load_invoice(ws: Workspace, invoice_path: Path) -> tuple[dict, dict, dict]:
@@ -161,19 +160,19 @@ def prepare_invoice(ws: Workspace, studio: dict, client: dict, invoice: dict) ->
 
     cap = client.get("contract", {}).get("subcontractor_cap_per_month")
     if cap and subcontractors:
-        total_sub = sum((i["amount"] for i in subcontractors), Decimal("0"))
+        total_sub = sum((i["amount"] for i in subcontractors), Decimal(0))
         if total_sub > Decimal(str(cap)):
             warnings.append(
                 f"Subcontractor pass-through {fmt_money(total_sub, currency)} exceeds "
                 f"contractual cap of {fmt_money(cap, currency)}/month"
             )
 
-    subtotal = sum((i["amount"] for i in line_items + subcontractors + expenses), Decimal("0"))
+    subtotal = sum((i["amount"] for i in line_items + subcontractors + expenses), Decimal(0))
 
     tax = invoice.get("tax")
-    tax_amount = Decimal("0")
+    tax_amount = Decimal(0)
     if tax and tax.get("rate_pct"):
-        tax_amount = to_money(subtotal * Decimal(str(tax["rate_pct"])) / Decimal("100"))
+        tax_amount = to_money(subtotal * Decimal(str(tax["rate_pct"])) / Decimal(100))
     total = subtotal + tax_amount
 
     payment_terms = (

@@ -129,7 +129,7 @@ class Workspace:
 
     # ── discovery / creation ───────────────────────────────────────
     @classmethod
-    def discover(cls, start: Path | None = None) -> "Workspace":
+    def discover(cls, start: Path | None = None) -> Workspace:
         env = os.environ.get("BACKOFFICE_HOME")
         if env:
             return cls(Path(env))

@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from backoffice.config import Workspace, deep_merge
 from backoffice import ingest, ledger, scaffold
+from backoffice.config import Workspace, deep_merge
 from backoffice.model import load_invoice, prepare_invoice
-from backoffice.money import fmt_money, fmt_qty, fmt_date
+from backoffice.money import fmt_date, fmt_money, fmt_qty
 from backoffice.render import render_html
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
@@ -47,14 +47,14 @@ def test_deep_merge():
 
 def test_invoice_totals(ws):
     studio, client, raw = load_invoice(ws, EXAMPLES / "invoices/acme/2026-001.yml")
-    prepared, warnings = prepare_invoice(ws, studio, client, raw)
+    prepared, _warnings = prepare_invoice(ws, studio, client, raw)
     # 8000 retainer + 120 expense pass-through
     assert prepared["total"] == Decimal("8120.00")
     assert prepared["total_fmt"] == "$8,120.00"
     assert len(prepared["expenses"]) == 1
 
 def test_render_html_contains_key_fields(ws):
-    html, invoice, warnings = render_html(ws, EXAMPLES / "invoices/acme/2026-001.yml")
+    html, _invoice, _warnings = render_html(ws, EXAMPLES / "invoices/acme/2026-001.yml")
     assert "NWS-2026-001-ACME" in html
     assert "Acme Incorporated" in html
     assert "$8,120.00" in html
@@ -80,7 +80,7 @@ def test_aging_buckets(ws):
     assert s["outstanding"] == Decimal("8120.00")
     assert s["overdue"] == Decimal("8120.00")
     assert s["aging"]["61-90"] == Decimal("8120.00")
-    assert s["aging"]["current"] == Decimal("0")
+    assert s["aging"]["current"] == Decimal(0)
 
 def test_drift_detection(ws, tmp_path):
     # Copy the workspace, corrupt the ledger amount, expect drift.
@@ -89,7 +89,7 @@ def test_drift_detection(ws, tmp_path):
     shutil.copytree(EXAMPLES, dst)
     led = dst / "_ledger.yml"
     led.write_text(led.read_text().replace("8120.00", "9999.00"))
-    records, drift = ledger.reconcile(Workspace(dst))
+    _records, drift = ledger.reconcile(Workspace(dst))
     assert any("≠ computed" in d for d in drift)
 
 
@@ -109,7 +109,7 @@ def test_ingest_writes_client_yaml(tmp_path):
     ws = Workspace(tmp_path)
     (tmp_path / "studio.yml").write_text("legal_name: Northwind Studio, LLC\n")
     shutil.copytree(EXAMPLES / "contracts", tmp_path / "contracts")
-    out, ex = ingest.ingest_contract(ws, tmp_path / "contracts/acme-msa.md")
+    out, _ex = ingest.ingest_contract(ws, tmp_path / "contracts/acme-msa.md")
     assert out.exists()
     assert out.name == "acme-incorporated.yml"
     text = out.read_text()
@@ -213,6 +213,6 @@ def test_year_summary(tmp_path):
     s = ledger.year_summary(ws, 2026)
     # 8000 retainer + 120 expense + 1500 contractor, now all on the paid invoice.
     assert s["total_paid"] == Decimal("9620.00")
-    assert s["contractors"]["Jordan Lee"] == Decimal("1500")
+    assert s["contractors"]["Jordan Lee"] == Decimal(1500)
     assert "Jordan Lee" in s["contractors_1099"]            # ≥ $600
     assert s["expenses"].get("software") == Decimal("120.00")
