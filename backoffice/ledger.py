@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, DecimalException
 
 import yaml
 
@@ -37,7 +37,7 @@ class Record:
     doc_type: str = "invoice"
     issue_date: date | None = None
     due_date: date | None = None
-    total: Decimal = Decimal("0")
+    total: Decimal = Decimal(0)
     currency: str = "USD"
     status: str = "draft"
     sent_date: date | None = None
@@ -68,7 +68,8 @@ def reconcile(ws: Workspace) -> tuple[list[Record], list[str]]:
         try:
             studio, client, raw = load_invoice(ws, path)
             prepared, warns = prepare_invoice(ws, studio, client, raw)
-        except Exception as exc:  # malformed file shouldn't sink the whole report
+        except (yaml.YAMLError, OSError, ValueError, TypeError, KeyError, AttributeError, DecimalException) as exc:
+            # A malformed file shouldn't sink the whole report.
             drift.append(f"{path.name}: failed to load ({exc})")
             continue
         if prepared.get("type") == "quote":
@@ -120,7 +121,7 @@ def reconcile(ws: Workspace) -> tuple[list[Record], list[str]]:
 def aging(records: list[Record], ref: date | None = None) -> dict:
     """Sum outstanding (issued/sent) invoices into aging buckets."""
     ref = ref or date.today()
-    buckets = {name: Decimal("0") for name, _, _ in AGING_BUCKETS}
+    buckets = {name: Decimal(0) for name, _, _ in AGING_BUCKETS}
     for r in records:
         if not r.outstanding:
             continue
@@ -137,15 +138,15 @@ def aging(records: list[Record], ref: date | None = None) -> dict:
 
 def summary(records: list[Record], ref: date | None = None) -> dict:
     ref = ref or date.today()
-    outstanding = sum((r.total for r in records if r.outstanding), Decimal("0"))
-    paid = sum((r.total for r in records if r.status == "paid"), Decimal("0"))
-    overdue = sum((r.total for r in records if r.outstanding and r.days_overdue(ref) > 0), Decimal("0"))
-    by_status = {s: Decimal("0") for s in ALL_STATUSES}
+    outstanding = sum((r.total for r in records if r.outstanding), Decimal(0))
+    paid = sum((r.total for r in records if r.status == "paid"), Decimal(0))
+    overdue = sum((r.total for r in records if r.outstanding and r.days_overdue(ref) > 0), Decimal(0))
+    by_status = {s: Decimal(0) for s in ALL_STATUSES}
     by_client: dict[str, Decimal] = {}
     for r in records:
-        by_status[r.status] = by_status.get(r.status, Decimal("0")) + r.total
+        by_status[r.status] = by_status.get(r.status, Decimal(0)) + r.total
         if r.outstanding:
-            by_client[r.client] = by_client.get(r.client, Decimal("0")) + r.total
+            by_client[r.client] = by_client.get(r.client, Decimal(0)) + r.total
     return {
         "outstanding": outstanding, "overdue": overdue, "paid": paid,
         "by_status": by_status, "by_client_outstanding": by_client,
@@ -153,7 +154,7 @@ def summary(records: list[Record], ref: date | None = None) -> dict:
     }
 
 
-FORM_1099_THRESHOLD = Decimal("600")
+FORM_1099_THRESHOLD = Decimal(600)
 
 
 def year_summary(ws: Workspace, year: int) -> dict:
@@ -165,11 +166,11 @@ def year_summary(ws: Workspace, year: int) -> dict:
         if r.doc_type == "quote":
             continue
         if r.status != "void" and r.issue_date and r.issue_date.year == year:
-            invoiced[r.client] = invoiced.get(r.client, Decimal("0")) + r.total
+            invoiced[r.client] = invoiced.get(r.client, Decimal(0)) + r.total
         if r.status == "paid":
             when = r.paid_date or r.issue_date
             if when and when.year == year:
-                paid[r.client] = paid.get(r.client, Decimal("0")) + r.total
+                paid[r.client] = paid.get(r.client, Decimal(0)) + r.total
 
     # Contractor payments (1099-NEC: report what you paid each contractor).
     contractors: dict[str, Decimal] = {}
@@ -183,7 +184,7 @@ def year_summary(ws: Workspace, year: int) -> dict:
             if amount is None and data.get("hours") and data.get("rate"):
                 amount = Decimal(str(data["hours"])) * Decimal(str(data["rate"]))
             name = (data.get("contractor") or {}).get("name", "Unknown")
-            contractors[name] = contractors.get(name, Decimal("0")) + Decimal(str(amount or 0))
+            contractors[name] = contractors.get(name, Decimal(0)) + Decimal(str(amount or 0))
 
     # Pass-through expenses by category (handy for Schedule C).
     expenses: dict[str, Decimal] = {}
@@ -196,14 +197,14 @@ def year_summary(ws: Workspace, year: int) -> dict:
             if not (d and d.year == year):
                 continue
             cat = data.get("category", "other")
-            expenses[cat] = expenses.get(cat, Decimal("0")) + Decimal(str(data.get("amount", 0) or 0))
+            expenses[cat] = expenses.get(cat, Decimal(0)) + Decimal(str(data.get("amount", 0) or 0))
 
     return {
         "year": year,
         "invoiced": invoiced,
         "paid": paid,
-        "total_invoiced": sum(invoiced.values(), Decimal("0")),
-        "total_paid": sum(paid.values(), Decimal("0")),
+        "total_invoiced": sum(invoiced.values(), Decimal(0)),
+        "total_paid": sum(paid.values(), Decimal(0)),
         "contractors": contractors,
         "contractors_1099": {n: a for n, a in contractors.items() if a >= FORM_1099_THRESHOLD},
         "expenses": expenses,

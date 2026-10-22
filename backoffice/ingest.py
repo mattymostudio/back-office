@@ -21,7 +21,7 @@ import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import Decimal, DecimalException
 from pathlib import Path
 
 import yaml
@@ -70,15 +70,19 @@ def read_contract_text(path: Path) -> str:
             text = Path(tmp_path).read_text(errors="ignore")
             os.unlink(tmp_path)
             return text
+        pdf_read_error = (
+            "Reading PDFs needs either `pdftotext` (brew install poppler) or "
+            "`pip install pypdf`. Or pass a .md/.txt contract instead."
+        )
         try:
-            import pypdf  # noqa
+            import pypdf
+        except ImportError:
+            raise SystemExit(pdf_read_error)
+        try:
             reader = pypdf.PdfReader(str(path))
             return "\n".join((p.extract_text() or "") for p in reader.pages)
-        except Exception:
-            raise SystemExit(
-                "Reading PDFs needs either `pdftotext` (brew install poppler) or "
-                "`pip install pypdf`. Or pass a .md/.txt contract instead."
-            )
+        except (pypdf.errors.PyPdfError, pypdf.errors.DependencyError, OSError, ValueError):
+            raise SystemExit(pdf_read_error)
     raise SystemExit(f"Unsupported contract format: {suffix} (use .md, .txt, or .pdf)")
 
 
@@ -90,7 +94,7 @@ def _parse_amount(s: str) -> Decimal | None:
         return None
     try:
         return to_money(m.group(1).replace(",", ""))
-    except Exception:
+    except DecimalException:
         return None
 
 
@@ -116,10 +120,10 @@ def deterministic_extract(text: str, studio_name: str | None) -> Extraction:
         ex.client_legal_name = ex.parties[0]
 
     # Payment terms.
-    if re.search(r"due upon receipt|upon receipt|net\s*0\b", flat, re.I):
+    if re.search(r"due upon receipt|upon receipt|net\s*0\b", flat, re.IGNORECASE):
         ex.payment_terms = "Net 0 (due upon receipt)"
     else:
-        m = re.search(r"net\s*(\d{1,3})", flat, re.I)
+        m = re.search(r"net\s*(\d{1,3})", flat, re.IGNORECASE)
         if m:
             ex.payment_terms = f"Net {m.group(1)}"
 
@@ -130,30 +134,30 @@ def deterministic_extract(text: str, studio_name: str | None) -> Extraction:
         r"(?:retainer|fee) of \$\s*[\d,]+(?:\.\d{2})?",
         r"\$\s*[\d,]+(?:\.\d{2})?\s*(?:/|per)\s*(?:hour|hr)",
     ):
-        m = re.search(pat, flat, re.I)
+        m = re.search(pat, flat, re.IGNORECASE)
         if m:
             ex.rate = _parse_amount(m.group(0))
-            ex.rate_unit = "hour" if re.search(r"hour|hr", m.group(0), re.I) else "month"
+            ex.rate_unit = "hour" if re.search(r"hour|hr", m.group(0), re.IGNORECASE) else "month"
             break
 
     # Subcontractor cap.
-    m = re.search(r"subcontractor[^.]*?(\$\s*[\d,]+(?:\.\d{2})?)\s*(?:/|per)?\s*month", flat, re.I)
+    m = re.search(r"subcontractor[^.]*?(\$\s*[\d,]+(?:\.\d{2})?)\s*(?:/|per)?\s*month", flat, re.IGNORECASE)
     if m:
         ex.subcontractor_cap = _parse_amount(m.group(1))
 
     # Term dates — "effective <date>" ... "through/until <date>".
     months = r"(?:January|February|March|April|May|June|July|August|September|October|November|December)"
-    m = re.search(rf"effective[^.]*?({months}\s+\d{{1,2}},?\s+\d{{4}}|\d{{4}}-\d{{2}}-\d{{2}})", flat, re.I)
+    m = re.search(rf"effective[^.]*?({months}\s+\d{{1,2}},?\s+\d{{4}}|\d{{4}}-\d{{2}}-\d{{2}})", flat, re.IGNORECASE)
     if m:
         ex.term_start = m.group(1)
-    m = re.search(rf"(?:through|until|expires?|ending)[^.]*?({months}\s+\d{{1,2}},?\s+\d{{4}}|\d{{4}}-\d{{2}}-\d{{2}})", flat, re.I)
+    m = re.search(rf"(?:through|until|expires?|ending)[^.]*?({months}\s+\d{{1,2}},?\s+\d{{4}}|\d{{4}}-\d{{2}}-\d{{2}})", flat, re.IGNORECASE)
     if m:
         ex.term_end = m.group(1)
 
     # Reference / title — first non-empty line, or an "...Agreement" phrase.
     first_lines = [ln.strip() for ln in text.splitlines() if ln.strip()][:8]
     for ln in first_lines:
-        if re.search(r"agreement|statement of work|sow|contract|engagement", ln, re.I) and len(ln) < 90:
+        if re.search(r"agreement|statement of work|sow|contract|engagement", ln, re.IGNORECASE) and len(ln) < 90:
             ex.reference = ln.strip("# ").strip()
             break
 

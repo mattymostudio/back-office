@@ -43,7 +43,7 @@ def render_html(ws: Workspace, invoice_path: Path) -> tuple[str, dict, list[str]
 
 def render_to_file(ws: Workspace, invoice_path: Path) -> tuple[Path, list[str]]:
     """Render and write out/<slug>/<number>.html. Returns (out_path, warnings)."""
-    studio, client, invoice_raw = load_invoice(ws, invoice_path)
+    _studio, client, _invoice_raw = load_invoice(ws, invoice_path)
     slug = client.get("slug") or invoice_path.parent.name
     html, invoice, warnings = render_html(ws, invoice_path)
 

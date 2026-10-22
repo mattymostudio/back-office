@@ -15,9 +15,9 @@ from .render import render_html, sync_forms
 
 def _require_weasyprint():
     try:
-        from weasyprint import HTML  # noqa: F401
+        from weasyprint import HTML
         return HTML
-    except Exception as exc:  # ImportError or native-lib load failure
+    except (ImportError, OSError) as exc:  # missing Python dependency or native library
         raise SystemExit(
             "PDF export needs WeasyPrint, which isn't available.\n"
             "  Install:  pip install 'backoffice[pdf]'\n"
